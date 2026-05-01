@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>To-Do App</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      width: 400px;
+      border-radius: 10px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+    }
+
+    ul { list-style: none; padding: 0; }
+
+    li {
+      background: #eee;
+      margin: 5px 0;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h2>To-Do App</h2>
+
+  <!-- LOGIN -->
+  <div id="loginBox">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="signup()">Sign Up</button>
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- APP -->
+  <div id="appBox" class="hidden">
+    <button onclick="logout()">Logout</button>
+
+    <input id="taskInput" placeholder="Enter task">
+    <button onclick="addTask()">Add Task</button>
+
+    <ul id="taskList"></ul>
+  </div>
+
+</div>
+
+<!-- FIREBASE COMPAT -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+<script>
+/* ?? YOUR CONFIG (ALREADY CORRECT) */
+const firebaseConfig = {
+  apiKey: "AIzaSyDs9CbnItFaUXtbHeCq_dVi6w-fwf3QTdk",
+  authDomain: "todo-app-4ce7a.firebaseapp.com",
+  projectId: "todo-app-4ce7a",
+  storageBucket: "todo-app-4ce7a.firebasestorage.app",
+  messagingSenderId: "1011599226432",
+  appId: "1:1011599226432:web:688198767be47bd05dd1a5"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+
+/* AUTH */
+function signup() {
+  auth.createUserWithEmailAndPassword(email.value, password.value)
+    .catch(e => alert(e.message));
+}
+
+function login() {
+  auth.signInWithEmailAndPassword(email.value, password.value)
+    .catch(e => alert(e.message));
+}
+
+function logout() {
+  auth.signOut();
+}
+
+/* AUTH STATE */
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    loginBox.classList.add("hidden");
+    appBox.classList.remove("hidden");
+    loadTasks();
+  } else {
+    loginBox.classList.remove("hidden");
+    appBox.classList.add("hidden");
+  }
+});
+
+/* ADD TASK */
+function addTask() {
+  const text = taskInput.value.trim();
+  if (!text) return;
+
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("tasks")
+    .add({ text });
+
+  taskInput.value = "";
+}
+
+/* LOAD TASKS */
+function loadTasks() {
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("tasks")
+    .onSnapshot(snapshot => {
+      taskList.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const li = document.createElement("li");
+        li.textContent = doc.data().text;
+
+        li.onclick = () => {
+          db.collection("users")
+            .doc(currentUser.uid)
+            .collection("tasks")
+            .doc(doc.id)
+            .delete();
+        };
+
+        taskList.appendChild(li);
+      });
+    });
+}
+</script>
+
+</body>
+</html>
